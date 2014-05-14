@@ -67,4 +67,14 @@ public class ImageGridProxy extends TiViewProxy {
 		grid.resetImages();
 	}
 	
+	
+	@Kroll.method @Kroll.setProperty
+	public void setMultiSelectMode(Object arg) {
+		setPropertyAndFire(ImageGrid.PROPERTY_MULTI_SELECT_MODE, arg);
+	}
+	
+	@Kroll.method @Kroll.getProperty
+	public Object getMultiSelectMode() {
+		return getProperty(ImageGrid.PROPERTY_MULTI_SELECT_MODE);
+	}
 }

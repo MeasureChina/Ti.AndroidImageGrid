@@ -179,5 +179,13 @@ grid.addEventListener("scroll", function(ev) {
 	}
 });
 
+win.addEventListener("open", function() {
+	setTimeout(function() {
+		grid.multiSelectMode = true;
+		console.log("enabled multi-select mode");
+		console.log(grid.multiSelectMode);
+	}, 10000);
+});
+
 win.add(grid);
 win.open();

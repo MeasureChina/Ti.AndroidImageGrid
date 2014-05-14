@@ -1,9 +1,11 @@
 package com.tripvi.imagegrid;
 
 import org.appcelerator.kroll.KrollDict;
+import org.appcelerator.kroll.KrollProxy;
 import android.util.Log;
 import org.appcelerator.titanium.proxy.TiViewProxy;
 import org.appcelerator.titanium.view.TiUIView;
+import org.appcelerator.titanium.util.TiConvert;
 import org.appcelerator.titanium.util.TiRHelper;
 import org.appcelerator.titanium.util.TiRHelper.ResourceNotFoundException;
 
@@ -25,7 +27,6 @@ import android.widget.FrameLayout;
 import android.widget.FrameLayout.LayoutParams;
 import android.widget.GridView;
 import android.widget.ImageView;
-import android.widget.ProgressBar;
 
 import com.nostra13.universalimageloader.core.DisplayImageOptions;
 import com.nostra13.universalimageloader.core.ImageLoader;
@@ -45,7 +46,11 @@ public class ImageGrid extends TiUIView {
 	Map<Integer,Integer> selectedImages = new HashMap<Integer,Integer>();
 	DisplayImageOptions options;
 	
+	boolean multiSelectMode = false;
+	
 	// Static Properties
+	public static final String PROPERTY_MULTI_SELECT_MODE = "multiSelectMode";
+	
 	private int layout_image_grid;
 	private int layout_image_grid_item;
 	private int id_image;
@@ -54,7 +59,8 @@ public class ImageGrid extends TiUIView {
 	private int drawable_ic_empty;
 	private int drawable_ic_error;
 	
-	private static final String TAG = "Grid";
+	private static final String TAG = "Tripvi.ImageGrid";
+	
 	
 	public ImageGrid(final ImageGridProxy proxy) {
 		super(proxy);
@@ -103,15 +109,19 @@ public class ImageGrid extends TiUIView {
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 				// toggle selected image overlay
 				ViewHolder holder = (ViewHolder) view.getTag();
-				boolean selected;
+				boolean selected = true;
 				
 				if (selectedImages.get(position) == null) {
 					selectedImages.put(position, 1);
-					holder.overlay.setVisibility(View.VISIBLE);
+					if (multiSelectMode) {
+						holder.overlay.setVisibility(View.VISIBLE);
+					}
 					selected = true;
 				} else {
 					selectedImages.remove(position);
-					holder.overlay.setVisibility(View.GONE);
+					if (multiSelectMode) {
+						holder.overlay.setVisibility(View.GONE);
+					}
 					selected = false;
 				}
 				
@@ -119,7 +129,11 @@ public class ImageGrid extends TiUIView {
 				if (proxy.hasListeners("click")) {
 					KrollDict eventData = new KrollDict();
 					eventData.put("index", position);
-					eventData.put("selected", selected);
+					if (multiSelectMode) {
+						eventData.put("selected", selected);
+					} else {
+						eventData.put("selected", true);
+					}
 					proxy.fireEvent("click", eventData);
 				}
 			}
@@ -186,11 +200,15 @@ public class ImageGrid extends TiUIView {
 				holder = (ViewHolder) view.getTag();
 			}
 			
-			if (selectedImages.get(position) == null) {
-				holder.overlay.setVisibility(View.GONE);
+			if (multiSelectMode) {
+				if (selectedImages.get(position) == null) {
+					holder.overlay.setVisibility(View.GONE);
+				} else {
+					// 선택된 position이면 overlay 표시
+					holder.overlay.setVisibility(View.VISIBLE);
+				}
 			} else {
-				// 선택된 position이면 overlay 표시
-				holder.overlay.setVisibility(View.VISIBLE);
+				holder.overlay.setVisibility(View.GONE);
 			}
 			
 			imageLoader.displayImage(imageUrls.get(position), holder.imageView, options, new SimpleImageLoadingListener() {
@@ -198,15 +216,13 @@ public class ImageGrid extends TiUIView {
 					public void onLoadingStarted(String imageUri, View view) {
 						
 					}
-            		
 					@Override
 					public void onLoadingFailed(String imageUri, View view, FailReason failReason) {
-						// holder.progressBar.setVisibility(View.GONE);
+						
 					}
-            		
 					@Override
 					public void onLoadingComplete(String imageUri, View view, Bitmap loadedImage) {
-						// holder.progressBar.setVisibility(View.GONE);
+						
 					}
 				}, new ImageLoadingProgressListener() {
 					@Override
@@ -234,5 +250,26 @@ public class ImageGrid extends TiUIView {
 	public void resetImages() {
 		imageUrls.clear();
 		selectedImages.clear();
+	}
+
+	@Override
+	public void processProperties(KrollDict d) {
+		if (d.containsKey(PROPERTY_MULTI_SELECT_MODE)) {
+			multiSelectMode = TiConvert.toBoolean(d.get(PROPERTY_MULTI_SELECT_MODE));
+		}
+		
+		super.processProperties(d);
+	}
+	
+	@Override
+	public void propertyChanged(String key, Object oldValue, Object newValue, KrollProxy proxy) {
+		if (key.equals(PROPERTY_MULTI_SELECT_MODE)) {
+			multiSelectMode = TiConvert.toBoolean(newValue);
+			
+			// gridView를 다시 렌더링한다.
+			view.invalidateViews();
+		} else {
+			super.propertyChanged(key, oldValue, newValue, proxy);
+		}
 	}
 }
