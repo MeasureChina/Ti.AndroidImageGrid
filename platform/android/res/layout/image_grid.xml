@@ -5,7 +5,9 @@
     android:layout_height="fill_parent"
     android:gravity="center"
     android:horizontalSpacing="4dip"
-    android:numColumns="3"
+    android:numColumns="4"
     android:stretchMode="columnWidth"
     android:verticalSpacing="4dip"
+    android:listSelector="@android:color/transparent"
+	android:fastScrollEnabled="true"
     android:padding="4dip" />

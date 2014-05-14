@@ -26,8 +26,7 @@ public class ImageGridProxy extends TiViewProxy {
 	@Override
 	public TiUIView createView(Activity activity) {
 		initImageLoader(activity);
-		
-		grid = new ImageGrid(this);
+		initImageGrid();
 		return grid;
 	}
 	
@@ -42,16 +41,29 @@ public class ImageGridProxy extends TiViewProxy {
 		ImageLoader.getInstance().init(config);
 	}
 	
+	public void initImageGrid() {
+		if (grid == null) {
+			grid = new ImageGrid(this);
+		}
+	}
+	
 	
 	@Kroll.method
-	public void appendImages(Object obj) {
-		if (obj != null) {
-			grid.appendImages((String [])obj);
+	public void appendImages(Object args) {
+		Object [] argArray = (Object[]) args;
+		String [] images = new String [argArray.length];
+		
+		for (int i=0; i < argArray.length; i++) {
+			images[i] = (String) argArray[i];
 		}
+		
+		initImageGrid();
+		grid.appendImages(images);
 	}
 	
 	@Kroll.method
 	public void resetImages() {
+		initImageGrid();
 		grid.resetImages();
 	}
 	

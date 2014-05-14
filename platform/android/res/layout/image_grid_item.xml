@@ -1,20 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
-    android:layout_height="120dip">
+    android:layout_height="90dip">
 
     <ImageView
         android:id="@+id/image"
         android:layout_width="fill_parent"
-        android:layout_height="120dip"
+        android:layout_height="90dip"
         android:adjustViewBounds="true"
+        android:clickable="false"
         android:scaleType="centerCrop" />
 
-    <ProgressBar
-        android:id="@+id/progress"
+	<FrameLayout
+        android:id="@+id/overlay"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:indeterminate="false"
-        android:max="100"
-        android:layout_gravity="bottom" />
+        android:layout_height="90dip"
+        android:clickable="false"
+        android:visibility="gone">
+		
+	    <View
+	        android:layout_width="fill_parent"
+	        android:layout_height="fill_parent"
+	        android:background="#6fff"
+	        android:clickable="false"
+	        />
+
+	    <ImageView
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:padding="4dip"
+	        android:src="@drawable/tick_grid"
+	        android:clickable="false"
+	        android:layout_gravity="top|right"
+			/>
+		
+	</FrameLayout>
+	
 </FrameLayout>

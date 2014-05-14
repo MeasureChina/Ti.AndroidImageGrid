@@ -7,10 +7,17 @@ import org.appcelerator.titanium.view.TiUIView;
 import org.appcelerator.titanium.util.TiRHelper;
 import org.appcelerator.titanium.util.TiRHelper.ResourceNotFoundException;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
+import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
@@ -34,19 +41,18 @@ public class ImageGrid extends TiUIView {
 	
 	protected ImageLoader imageLoader = ImageLoader.getInstance();
 	
-	String[] imageUrls = new String[0];
+	List<String> imageUrls = new ArrayList<String>();
+	Map<Integer,Integer> selectedImages = new HashMap<Integer,Integer>();
 	DisplayImageOptions options;
 	
 	// Static Properties
-	// public static final String PROPERTY_LEFT_VIEW = "leftView";
-	// public static final String PROPERTY_CENTER_VIEW = "centerView";
-	// public static final String PROPERTY_RIGHT_VIEW = "rightView";
-	// public static final String PROPERTY_LEFT_VIEW_WIDTH = "leftDrawerWidth";
-	// public static final String PROPERTY_RIGHT_VIEW_WIDTH = "rightDrawerWidth";
 	private int layout_image_grid;
 	private int layout_image_grid_item;
 	private int id_image;
-	private int id_progress;
+	private int id_overlay;
+	private int drawable_ic_stub;
+	private int drawable_ic_empty;
+	private int drawable_ic_error;
 	
 	private static final String TAG = "Grid";
 	
@@ -57,7 +63,10 @@ public class ImageGrid extends TiUIView {
 			layout_image_grid = TiRHelper.getResource("layout.image_grid");
 			layout_image_grid_item = TiRHelper.getResource("layout.image_grid_item");
 			id_image = TiRHelper.getResource("id.image");
-			id_progress = TiRHelper.getResource("id.progress");
+			id_overlay = TiRHelper.getResource("id.overlay");
+			drawable_ic_stub = TiRHelper.getResource("drawable.ic_stub");
+			drawable_ic_empty = TiRHelper.getResource("drawable.ic_empty");
+			drawable_ic_error = TiRHelper.getResource("drawable.ic_error");
 		}
 		catch (ResourceNotFoundException e) {
 			Log.e(TAG, "XML resources could not be found!!!");
@@ -65,9 +74,9 @@ public class ImageGrid extends TiUIView {
 		
 		//
 		options = new DisplayImageOptions.Builder()
-			// .showImageOnLoading(R.drawable.ic_stub)
-			// .showImageForEmptyUri(R.drawable.ic_empty)
-			// .showImageOnFail(R.drawable.ic_error)
+			.showImageOnLoading(drawable_ic_stub)
+			.showImageForEmptyUri(drawable_ic_empty)
+			.showImageOnFail(drawable_ic_error)
 			.cacheInMemory(false)
 			.cacheOnDisk(false)
 			.considerExifParams(true)
@@ -92,11 +101,54 @@ public class ImageGrid extends TiUIView {
 		view.setOnItemClickListener(new OnItemClickListener() {
 			@Override
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+				// toggle selected image overlay
+				ViewHolder holder = (ViewHolder) view.getTag();
+				boolean selected;
+				
+				if (selectedImages.get(position) == null) {
+					selectedImages.put(position, 1);
+					holder.overlay.setVisibility(View.VISIBLE);
+					selected = true;
+				} else {
+					selectedImages.remove(position);
+					holder.overlay.setVisibility(View.GONE);
+					selected = false;
+				}
+				
+				// trigger event
 				if (proxy.hasListeners("click")) {
 					KrollDict eventData = new KrollDict();
 					eventData.put("index", position);
+					eventData.put("selected", selected);
 					proxy.fireEvent("click", eventData);
 				}
+			}
+		});
+		view.setOnScrollListener(new OnScrollListener() {
+			int _lastVisibleItem = 0;
+			int _totalItemCount = 0;
+			
+			@Override
+			public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+				if (_lastVisibleItem == firstVisibleItem && _totalItemCount == totalItemCount) {
+					// 동일한 이벤트는 무시한다
+				} else {
+					// trigger event
+					if (proxy.hasListeners("scroll")) {
+						KrollDict eventData = new KrollDict();
+						eventData.put("firstVisibleItem", firstVisibleItem);
+						eventData.put("visibleItemCount", visibleItemCount);
+						eventData.put("totalItemCount", totalItemCount);
+						proxy.fireEvent("scroll", eventData);
+					}
+					
+					_lastVisibleItem = firstVisibleItem;
+					_totalItemCount = totalItemCount;
+				}
+			}
+			@Override
+			public void onScrollStateChanged(AbsListView view, int scrollState) {
+				
 			}
 		});
 	}
@@ -104,7 +156,7 @@ public class ImageGrid extends TiUIView {
 	public class ImageAdapter extends BaseAdapter {
 		@Override
 		public int getCount() {
-			return imageUrls.length;
+			return imageUrls.size();
 		}
 
 		@Override
@@ -127,55 +179,59 @@ public class ImageGrid extends TiUIView {
 				holder = new ViewHolder();
 				assert view != null;
 				holder.imageView = (ImageView) view.findViewById(id_image);
-				holder.progressBar = (ProgressBar) view.findViewById(id_progress);
+				holder.overlay = (ViewGroup) view.findViewById(id_overlay);
 				view.setTag(holder);
-			} else {
+			}
+			else {
 				holder = (ViewHolder) view.getTag();
 			}
 			
-			imageLoader.displayImage(imageUrls[position], holder.imageView, options, new SimpleImageLoadingListener() {
+			if (selectedImages.get(position) == null) {
+				holder.overlay.setVisibility(View.GONE);
+			} else {
+				// 선택된 position이면 overlay 표시
+				holder.overlay.setVisibility(View.VISIBLE);
+			}
+			
+			imageLoader.displayImage(imageUrls.get(position), holder.imageView, options, new SimpleImageLoadingListener() {
 					@Override
 					public void onLoadingStarted(String imageUri, View view) {
-						holder.progressBar.setProgress(0);
-						holder.progressBar.setVisibility(View.VISIBLE);
+						
 					}
             		
 					@Override
 					public void onLoadingFailed(String imageUri, View view, FailReason failReason) {
-						holder.progressBar.setVisibility(View.GONE);
+						// holder.progressBar.setVisibility(View.GONE);
 					}
             		
 					@Override
 					public void onLoadingComplete(String imageUri, View view, Bitmap loadedImage) {
-						holder.progressBar.setVisibility(View.GONE);
+						// holder.progressBar.setVisibility(View.GONE);
 					}
 				}, new ImageLoadingProgressListener() {
 					@Override
 					public void onProgressUpdate(String imageUri, View view, int current, int total) {
-						holder.progressBar.setProgress(Math.round(100.0f * current / total));
+						
 					}
 				}
 			);
 			
 			return view;
 		}
-
-		class ViewHolder {
-			ImageView imageView;
-			ProgressBar progressBar;
-		}
+	}
+	
+	class ViewHolder {
+		ImageView imageView;
+		ViewGroup overlay;
 	}
 	
 	public void appendImages(String [] images) {
-		int len1 = imageUrls.length;
-		int len2 = images.length;
-		String [] foo = new String[len1 + len2];
-		System.arraycopy(imageUrls, 0, foo, 0, len1);
-		System.arraycopy(len2, 0, foo, len1, len2);
-		imageUrls = foo;
+		for (int i=0; i < images.length; i++) {
+			imageUrls.add(images[i]);
+		}
 	}
 	
 	public void resetImages() {
-		imageUrls = new String[0];
+		imageUrls.clear();
 	}
 }
