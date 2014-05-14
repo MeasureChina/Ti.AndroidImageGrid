@@ -12,11 +12,7 @@ var win = Ti.UI.createWindow({
 	navBarHidden: true,
 });
 
-var grid = module.createImageGrid({
-	
-});
-
-grid.appendImages([
+var images = [
 	// Heavy images
 	"https://lh6.googleusercontent.com/-55osAWw3x0Q/URquUtcFr5I/AAAAAAAAAbs/rWlj1RUKrYI/s1024/A%252520Photographer.jpg",
 	"https://lh4.googleusercontent.com/--dq8niRp7W4/URquVgmXvgI/AAAAAAAAAbs/-gnuLQfNnBA/s1024/A%252520Song%252520of%252520Ice%252520and%252520Fire.jpg",
@@ -153,14 +149,34 @@ grid.appendImages([
 	"http://img001.us.expono.com/100001/100001-1bc30-2d736f_m.jpg", // EXIF
 	"", // Empty link
 	"http://wrong.site.com/corruptedLink", // Wrong link
-]);
+];
+
+var grid = module.createImageGrid({
+	
+});
+
+var page = 0;
+var per = 4 * 10;
+
+function loadPage() {
+	page += 1;
+	var items = images.slice(per*(page-1), per*page);
+	if (items && items.length) {
+		grid.appendImages(items);
+	}
+}
+
+loadPage();// first page
 
 grid.addEventListener("click", function(ev) {
 	console.log("click - index: " + ev.index + ", selected: " + ev.selected);
 });
 
 grid.addEventListener("scroll", function(ev) {
-	console.log(ev);
+	// pagination
+	if (ev.totalItemCount <= ev.visibleItemCount + ev.firstVisibleItem) {
+		loadPage();
+	}
 });
 
 win.add(grid);

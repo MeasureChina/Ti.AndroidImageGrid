@@ -233,5 +233,6 @@ public class ImageGrid extends TiUIView {
 	
 	public void resetImages() {
 		imageUrls.clear();
+		selectedImages.clear();
 	}
 }
