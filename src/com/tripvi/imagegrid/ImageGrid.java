@@ -84,7 +84,7 @@ public class ImageGrid extends TiUIView {
 			.showImageForEmptyUri(drawable_ic_empty)
 			.showImageOnFail(drawable_ic_error)
 			.cacheInMemory(false)
-			.cacheOnDisk(false)
+			.cacheOnDisk(true) // 디스크 캐쉬만 사용
 			.considerExifParams(true)
 			.bitmapConfig(Bitmap.Config.RGB_565)
 			.build();
